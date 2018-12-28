@@ -1,0 +1,289 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class RestaurantScript : MonoBehaviour
+{
+    private List<Player> mAllPlayers = new List<Player>();
+
+    private List<Player> mAlivePlayers = new List<Player>();
+    private List<Meal> mMeals = new List<Meal>();
+
+    private int mMarkedPlayerIndex;
+
+	//used when doing actions
+	private Player mFirstClickedMeal;
+	private bool mHeldDown = false;
+	private bool mCanDoAction = false;
+
+	//used when selecting player
+	private List<Player> mPlayerTurns = new List<Player>();
+	private Player mSelectedPlayer;
+	public bool mIsAPlayerSelected = false;
+
+	void Start()
+	{
+		mFirstClickedMeal = null;
+	}
+
+    public void addPlayer(Player newGuest)
+    {
+        mAllPlayers.Add(newGuest);
+        mAlivePlayers.Add(newGuest);
+		mPlayerTurns.Add (newGuest);
+    }
+    
+    public void addMeal(Meal meal)
+    {
+        mMeals.Add(meal);
+    }
+
+    public List<Player> getAllPlayers()
+    {
+        return mAllPlayers;
+    }
+
+    public List<Player> getAlivePlayers()
+    {
+        return mAlivePlayers;
+    }
+
+    public List<Meal> getMeals()
+    {
+        return mMeals;
+    }
+
+    public void clearEveryone()
+    {
+        clearAlivePlayers();
+        clearAlivePlayers();
+    }
+
+    private void clearAllPlayers()
+    {
+        mAllPlayers.Clear();
+    }
+
+    private void clearAlivePlayers()
+    {
+        mAlivePlayers.Clear();
+    }
+
+    public void clearMeals()
+    {
+        mMeals.Clear();
+    }
+
+    public void RotatePlatterLeft()
+    {
+        if (mMeals.Count == 0) return;
+
+    	List<Meal> tempMealList = new List<Meal>();
+
+        tempMealList.Add(mMeals[mMeals.Count - 1]);
+
+    	for (int i = 0; i < mMeals.Count - 1; i++)
+        {
+    		tempMealList.Add (mMeals[i]);
+    	}
+
+    	mMeals = tempMealList;
+
+        mMarkedPlayerIndex = (mMarkedPlayerIndex + 1) % mAlivePlayers.Count;
+    }
+
+    public void RotatePlatterRight()
+    {
+        if (mMeals.Count == 0) return;
+
+        List<Meal> tempMealList = new List<Meal>();
+
+        for (int i = 1; i < mMeals.Count; i++)
+        {
+    	    tempMealList.Add(mMeals[i]);
+    	}
+
+    	tempMealList.Add(mMeals[0]);
+
+    	mMeals = tempMealList;
+
+        mMarkedPlayerIndex--;
+
+        if (mMarkedPlayerIndex < 0)
+        {
+            mMarkedPlayerIndex = mAlivePlayers.Count - 1;
+        }
+    }
+
+    public void SetPoisonedMealAtIndex(int mealIndex)
+    {
+        int i;
+        for (i = 0; i < mMeals.Count; ++i)
+        {
+            mMeals[mealIndex].setPoisoned(false);
+        }
+
+        mMeals[mealIndex].setPoisoned(true);
+    }
+
+    public void MarkPlayerAtIndex(int playerIndex)
+    {
+        mMarkedPlayerIndex = playerIndex;
+    }
+
+    public int GetMarkedPlayerIndex()
+    {
+        return mMarkedPlayerIndex;
+    }
+
+    public List<int> GetPoisonedMealIndexes()
+    {
+        List<int> poisonedMealIndexes = new List<int>();
+
+        int i;
+        for (i = 0; i < mMeals.Count; ++i)
+        {
+            if (mMeals[i].isPoisoned())
+            {
+                poisonedMealIndexes.Add(i);
+            }
+        }
+
+        return poisonedMealIndexes;
+    }
+
+	public void ChooseWhoseTurn(Player chosenPlayer, Button chosenPlayerButton)
+	{
+		//if a player's already been selected
+		if (!mIsAPlayerSelected)
+		{
+			if (mPlayerTurns.Contains (chosenPlayer))
+			{
+				mIsAPlayerSelected = true;
+				mSelectedPlayer = chosenPlayer;
+				Debug.Log ("Player selected: " + chosenPlayer.getName());
+			}
+			//player couldn't be found in list so they're out of turns
+			else
+				Debug.Log ("Player is out of turns!");
+		}
+		else
+		{
+			//resets stuff if the player's name was deselected
+			if (chosenPlayer == mSelectedPlayer)
+			{
+				mIsAPlayerSelected = false;
+				mSelectedPlayer = null;
+				Debug.Log ("Player has been deselected.");
+			}
+			//gives turn away to someone else if their name is pressed
+			else
+			{
+				mPlayerTurns.Remove (mSelectedPlayer);
+				mPlayerTurns.Add (chosenPlayer);
+				mSelectedPlayer = chosenPlayer;
+				Debug.Log (chosenPlayer.getName () + " has been given another turn! You must take it now!");
+			}
+		}
+	}
+		
+	public void EndWhoseTurn()
+	{
+		//resets all the selected player stuff once an action has been made
+		mPlayerTurns.Remove (mSelectedPlayer);
+
+		mIsAPlayerSelected = false;
+		mSelectedPlayer = null;
+
+		//does something when all turns have been used
+		if (mPlayerTurns.Count <= 0) {
+			Debug.Log ("Round over!");
+		}
+	}
+
+	private void SwitchPlates(Player clickedMeal)
+	{
+		if (mFirstClickedMeal == null) {
+			mFirstClickedMeal = clickedMeal;
+
+			Debug.Log ("Pick another meal.");
+		}
+		else {
+			//finds index of the 2 selected meals
+			int firstClickedIndex = -1, secondClickedIndex = -1;
+			firstClickedIndex = mAlivePlayers.IndexOf (mFirstClickedMeal);
+			secondClickedIndex = mAlivePlayers.IndexOf (clickedMeal);
+
+			//find the two meals clicked in the Meals array
+			//int firstClicked = -1, secondClicked = -1;
+			//for (int i = 0; i < mAllPlayers.Count; i++) {
+			//	if (mFirstClickedMeal == mAlivePlayers [i]) {
+			//		firstClicked = i;
+			//	}
+			//	if (clickedMeal == mAlivePlayers [i]) {
+			//		secondClicked = i;
+			//	}
+			//}
+				
+			//switch the two meals
+			if ((firstClickedIndex != -1 && secondClickedIndex != -1)) {
+				if (firstClickedIndex != secondClickedIndex) {
+					Meal tempMeal = mMeals [firstClickedIndex];
+					mMeals [firstClickedIndex] = mMeals [secondClickedIndex];
+					mMeals [secondClickedIndex] = tempMeal;
+					Debug.Log ("Meals switched!");
+				} else {
+					Debug.Log ("Meal unselected.");
+				}
+			}
+
+			mFirstClickedMeal = null;
+		}
+	}
+
+	private void InvestigatePlate(Player clickedMeal)
+	{
+		int clicked = -1;
+		for (int i = 0; i < mAllPlayers.Count; i++) {
+			if (clickedMeal == mAlivePlayers [i]) {
+				clicked = i;
+			}
+		}
+		Debug.Log (clicked);
+		Debug.Log (mMeals [clicked].isPoisoned ());
+	}
+
+	//used to determine if the meal is held down or not
+	public void ClickPlateDown()
+	{
+		if (mIsAPlayerSelected) {
+			StartCoroutine (HoldDownTimer ());
+			mHeldDown = true;
+		}
+	}
+
+	public void ClickPlateUp(Player clickedMeal)
+	{
+		StopAllCoroutines ();
+
+		if (mCanDoAction && mFirstClickedMeal == null) {
+			InvestigatePlate (clickedMeal);
+		}
+		else {
+			SwitchPlates (clickedMeal);
+		}
+
+		EndWhoseTurn ();
+		mHeldDown = false;
+		mCanDoAction = false;
+	}
+
+	IEnumerator HoldDownTimer()
+	{
+		yield return new WaitForSeconds (1.0f);
+
+		if (mHeldDown)
+			mCanDoAction = true;
+	}
+}
